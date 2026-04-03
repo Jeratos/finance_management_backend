@@ -137,9 +137,10 @@ All APIs should be routed through the central Gateway running on port `5000`. Be
 ```
 
 #### `GET /get`
-**Use Case:** Retrieve all transaction records including their respective creator data (Admin or Analyst).
+**Use Case:** Retrieve all transaction records including their respective creator data (Admin or Analyst). Can also be filtered dynamically!
 **Headers:** `Authorization: Bearer <token>`
-**Params / Body:** None required.
+**Query Params (Optional):** `?date=YYYY-MM-DD`, `?category=string`, `?type=income|expense`
+**Example URL:** `GET http://localhost:5000/api/finance-records/get?type=income`
 
 #### `PUT /update/:id`
 **Use Case:** Correct a previous entry's classification, date, or scale (Admin only).

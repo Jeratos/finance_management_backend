@@ -40,27 +40,49 @@ export const createRecord = async (req, res) => {
 
 export const getAllRecords = async (req, res) => {
   try {
+    if (!req.headers.authorization) {
+      return res.status(401).json({ message: "No token provided" });
+    }
     const token = req.headers.authorization.split(" ")[1];
     const decodedToken = jwt.verify(token, secret);
 
-    if (decodedToken.role == "admin" || decodedToken.role == "analyst") {
-      const query = "SELECT * FROM finance_records";
-      const get_name_query = "SELECT name FROM users WHERE id = $1";
-      const records = await pool.query(query);
-      for (let i = 0; i < records.rows.length; i++) {
-        const name_of_creater_result = await pool.query(get_name_query, [
-          records.rows[i].created_by,
-        ]);
-        records.rows[i].name_of_creater = name_of_creater_result.rows[0].name;
-      }
-      return res
-        .status(200)
-        .json({
-          message: "Records fetched successfully",
-          records: records.rows,
-        });
+    if (decodedToken.role !== "admin" && decodedToken.role !== "analyst") {
+      return res.status(403).json({ message: "Unauthorized" });
     }
-    return res.status(403).json({ message: "Unauthorized" });
+    
+    // Filter records safely via parameters
+    const { date, category, type } = req.query;
+    let query = `
+      SELECT f.*, u.name as name_of_creater 
+      FROM finance_records f 
+      LEFT JOIN users u ON f.created_by = u.id 
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramCounter = 1;
+
+    if (date) {
+      query += ` AND f.date = $${paramCounter}`;
+      params.push(date);
+      paramCounter++;
+    }
+    if (category) {
+      query += ` AND f.category = $${paramCounter}`;
+      params.push(category);
+      paramCounter++;
+    }
+    if (type) {
+      query += ` AND f.type = $${paramCounter}`;
+      params.push(type);
+      paramCounter++;
+    }
+
+    const records = await pool.query(query, params);
+
+    return res.status(200).json({
+      message: "Records fetched successfully",
+      records: records.rows,
+    });
   } catch (error) {
     return res
       .status(500)
