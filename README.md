@@ -21,6 +21,15 @@ We use **PostgreSQL**, a powerful, open-source object-relational database.
 2. **Powerful Aggregations:** For the `dashboard-service`, Postgres natively processes extensive data querying logic (like `COALESCE`, `SUM`, and aggregations by strict date strings) highly efficiently within the database layer.
 3. **Foreign Keys constraints:** Excellent referential integrity guarantees operations like cascading user deletions are sound and protected.
 
+## 🔐 Authentication Approach
+This application relies on **JSON Web Tokens (JWT)** implemented via the Authentication Service. Tokens are generated upon valid login, attached to subsequent API requests as a `Bearer` token in the HTTP `Authorization` header, and verified independently by each microservice using a shared secret key (`finance_management_saas_proj`).
+
+**Trade-offs Considered:**
+1. **Stateless Validation (Pro):** Because JWTs cryptographically sign payloads containing the user's `id` and `role`, other microservices (like `record-service` and `dashboard-service`) can locally verify token authenticity without executing expensive network requests to the `auth-service` database every time.
+2. **Microservice Autonomy (Pro):** Decouples authorization logic from a central choke point, allowing each service to read roles and process its boundaries instantly.
+3. **Token Invalidation Complexity (Con):** The trade-off for utilizing stateless tokens over stateful sessions is that forcefully logging a user out or immediately purging their access before the token organically expires (1 hour) is difficult without implementing a distributed caching layer (like a Redis blocklist).
+4. **Shared Secret Risk (Con):** A symmetric shared secret must be securely distributed to all processing microservices, raising the risk vector if any single microservice's environment config is compromised.
+
 ---
 
 ## ⚙ Setup & Run Instructions
